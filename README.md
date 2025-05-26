@@ -1,86 +1,14 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+✅ Crowdfunding Campaign Smart Contract (Solidity)
+💡 Features
+Owner sets a goal and deadline at deployment.
 
-contract CrowdfundingCampaign {
-    address public owner;
-    uint public goal;
-    uint public deadline;
-    uint public totalContributed;
-    bool public goalReached;
-    bool public withdrawn;
+Anyone can contribute before the deadline.
 
-    mapping(address => uint) public contributions;
+If goal is met, owner can withdraw the funds.
 
-    event ContributionReceived(address contributor, uint amount);
-    event GoalReached(uint totalAmount);
-    event FundsWithdrawn(address owner, uint amount);
-    event RefundIssued(address contributor, uint amount);
+If goal is not met, contributors can get a refund.
 
-    constructor(uint _goalInWei, uint _durationInDays) {
-        owner = msg.sender;
-        goal = _goalInWei;
-        deadline = block.timestamp + (_durationInDays * 1 days);
-    }
+Uses events to track contributions, withdrawals, and refunds.
+Contract Details:0xf05f3f3990e3613a6d7ee570459c2843da6872d761db4c51045d01252826b076
+![image](https://github.com/user-attachments/assets/3d0d4837-1e0a-45b7-bf8f-8eebddc2b439)
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only campaign owner can do this.");
-        _;
-    }
-
-    modifier beforeDeadline() {
-        require(block.timestamp < deadline, "Deadline has passed.");
-        _;
-    }
-
-    modifier afterDeadline() {
-        require(block.timestamp >= deadline, "Deadline not yet reached.");
-        _;
-    }
-
-    function contribute() public payable beforeDeadline {
-        require(msg.value > 0, "Contribution must be greater than zero.");
-
-        contributions[msg.sender] += msg.value;
-        totalContributed += msg.value;
-
-        emit ContributionReceived(msg.sender, msg.value);
-
-        if (totalContributed >= goal && !goalReached) {
-            goalReached = true;
-            emit GoalReached(totalContributed);
-        }
-    }
-
-    function withdrawFunds() public onlyOwner afterDeadline {
-        require(goalReached, "Funding goal not reached.");
-        require(!withdrawn, "Funds already withdrawn.");
-
-        withdrawn = true;
-        payable(owner).transfer(address(this).balance);
-
-        emit FundsWithdrawn(owner, address(this).balance);
-    }
-
-    function claimRefund() public afterDeadline {
-        require(!goalReached, "Goal was met, refunds not available.");
-        uint amount = contributions[msg.sender];
-        require(amount > 0, "No contributions found for refund.");
-
-        contributions[msg.sender] = 0;
-        payable(msg.sender).transfer(amount);
-
-        emit RefundIssued(msg.sender, amount);
-    }
-
-    function getTimeRemaining() public view returns (uint) {
-        if (block.timestamp >= deadline) {
-            return 0;
-        } else {
-            return deadline - block.timestamp;
-        }
-    }
-
-    function getContribution(address _contributor) public view returns (uint) {
-        return contributions[_contributor];
-    }
-}
